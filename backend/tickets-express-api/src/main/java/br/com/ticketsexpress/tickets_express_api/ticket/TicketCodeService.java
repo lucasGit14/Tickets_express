@@ -1,36 +1,40 @@
 package br.com.ticketsexpress.tickets_express_api.ticket;
 
-import br.com.ticketsexpress.tickets_express_api.shared.ClockProvider;
-import br.com.ticketsexpress.tickets_express_api.shared.UuidProvider;
+import br.com.ticketsexpress.tickets_express_api.config.AppProperties;
 import org.springframework.stereotype.Service;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
-import java.util.UUID;
 
 @Service
 public class TicketCodeService {
 
-    private final ClockProvider clockProvider;
-    private final UuidProvider uuidProvider;
+    private static final String HMAC_ALGORITHM = "HmacSHA256";
 
-    public TicketCodeService(ClockProvider clockProvider, UuidProvider uuidProvider) {
-        this.clockProvider = clockProvider;
-        this.uuidProvider = uuidProvider;
+    private final AppProperties properties;
+
+    public TicketCodeService(AppProperties properties) {
+        this.properties = properties;
     }
 
-    public String generateCode() {
-        String seed = clockProvider.now().toString() + ":" + uuidProvider.nextId();
-        return sha256(seed);
+    public String hashCode(String rawCode) {
+        return hmacHex(properties.qrSecret(), rawCode);
     }
 
-    private String sha256(String value) {
+    public String hashShareToken(String rawToken) {
+        return hmacHex(properties.qrSecret(), rawToken);
+    }
+
+    private String hmacHex(String secret, String value) {
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(digest.digest(value.getBytes()));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
+            Mac mac = Mac.getInstance(HMAC_ALGORITHM);
+            mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM));
+            byte[] digest = mac.doFinal(value.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Failed to generate secure hash", ex);
         }
     }
 }

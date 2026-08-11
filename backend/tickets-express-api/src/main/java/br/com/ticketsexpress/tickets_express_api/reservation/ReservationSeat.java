@@ -9,13 +9,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
-import java.io.Serializable;
-import java.util.Objects;
-import java.util.UUID;
-
 @Entity
 @Table(name = "reservation_seats")
-@IdClass(ReservationSeat.ReservationSeatId.class)
+@IdClass(ReservationSeatId.class)
 public class ReservationSeat {
 
     @Id
@@ -42,43 +38,5 @@ public class ReservationSeat {
 
     public Seat getSeat() {
         return seat;
-    }
-
-    public static class ReservationSeatId implements Serializable {
-        private UUID reservation;
-        private UUID seat;
-
-        public ReservationSeatId() {
-        }
-
-        public ReservationSeatId(UUID reservation, UUID seat) {
-            this.reservation = reservation;
-            this.seat = seat;
-        }
-
-        public UUID getReservation() {
-            return reservation;
-        }
-
-        public UUID getSeat() {
-            return seat;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (!(o instanceof ReservationSeatId that)) {
-                return false;
-            }
-            return Objects.equals(reservation, that.reservation)
-                    && Objects.equals(seat, that.seat);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(reservation, seat);
-        }
     }
 }

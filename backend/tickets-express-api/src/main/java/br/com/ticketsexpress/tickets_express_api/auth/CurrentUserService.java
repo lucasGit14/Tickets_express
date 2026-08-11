@@ -10,4 +10,8 @@ public class CurrentUserService {
     public UUID requireCurrentUserId() {
         throw new UnsupportedOperationException("Authentication not implemented yet");
     }
+
+    public ApplicationUser requireCurrentUser() {
+        throw new UnsupportedOperationException("Authentication not implemented yet");
+    }
 }
