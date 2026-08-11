@@ -188,6 +188,6 @@ public class ReservationService {
     }
 
     private ApplicationUser requireCurrentUser() {
-        throw new UnsupportedOperationException("Current user lookup not implemented yet");
+        return currentUserService.requireCurrentUser();
     }
 }
