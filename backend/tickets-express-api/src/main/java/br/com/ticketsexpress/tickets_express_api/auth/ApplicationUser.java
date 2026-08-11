@@ -6,20 +6,12 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "users")
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class ApplicationUser {
 
     @Id
@@ -40,4 +32,40 @@ public class ApplicationUser {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    public ApplicationUser() {
+    }
+
+    public ApplicationUser(UUID id, String name, String email, String passwordHash, UserRole role, Instant createdAt) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.passwordHash = passwordHash;
+        this.role = role;
+        this.createdAt = createdAt;
+    }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public UserRole getRole() {
+        return role;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
 }
