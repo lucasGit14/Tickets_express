@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/tickets_express}
+    username: ${DB_USER:tickets_express}
+    password: ${DB_PASSWORD:tickets_express_local}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+server:
+  error:
+    include-message: never
+
+app:
+  jwt-secret: ${JWT_SECRET:troque-por-uma-chave-com-no-minimo-32-caracteres}
+  qr-secret: ${QR_SECRET:troque-por-uma-chave-qr-com-no-minimo-32-caracteres}
+  tmdb:
+    base-url: https://api.themoviedb.org/3
+    token: ${TMDB_TOKEN:}
+  cors-origin: ${CORS_ORIGIN:http://localhost:5173}

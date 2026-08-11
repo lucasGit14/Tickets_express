@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tickets-express-postgres
+    environment:
+      POSTGRES_DB: tickets_express
+      POSTGRES_USER: tickets_express
+      POSTGRES_PASSWORD: tickets_express_local
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tickets_express -d tickets_express"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
