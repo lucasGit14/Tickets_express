@@ -9,6 +9,7 @@ public record SeatResponse(
         UUID eventId,
         String rowLabel,
         Integer seatNumber,
-        SeatCategory category
+        SeatCategory category,
+        boolean available
 ) {
 }

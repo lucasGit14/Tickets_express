@@ -31,8 +31,15 @@ public class Ticket {
     @JoinColumn(name = "seat_id", nullable = false, unique = true)
     private Seat seat;
 
+    @Column(name = "code_raw", nullable = false, unique = true, length = 64)
+    private String codeRaw;
+
     @Column(name = "code_hash", nullable = false, unique = true, length = 64)
     private String codeHash;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private ApplicationUser owner;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -57,11 +64,24 @@ public class Ticket {
     public Ticket() {
     }
 
-    public Ticket(UUID id, Reservation reservation, Seat seat, String codeHash, TicketStatus status, Instant validatedAt, ApplicationUser validatedBy, String shareTokenHash, Instant shareExpiresAt, Instant createdAt) {
+    public Ticket(UUID id,
+                  Reservation reservation,
+                  Seat seat,
+                  String codeRaw,
+                  String codeHash,
+                  ApplicationUser owner,
+                  TicketStatus status,
+                  Instant validatedAt,
+                  ApplicationUser validatedBy,
+                  String shareTokenHash,
+                  Instant shareExpiresAt,
+                  Instant createdAt) {
         this.id = id;
         this.reservation = reservation;
         this.seat = seat;
+        this.codeRaw = codeRaw;
         this.codeHash = codeHash;
+        this.owner = owner;
         this.status = status;
         this.validatedAt = validatedAt;
         this.validatedBy = validatedBy;
@@ -82,8 +102,16 @@ public class Ticket {
         return seat;
     }
 
+    public String getCodeRaw() {
+        return codeRaw;
+    }
+
     public String getCodeHash() {
         return codeHash;
+    }
+
+    public ApplicationUser getOwner() {
+        return owner;
     }
 
     public TicketStatus getStatus() {
