@@ -7,4 +7,6 @@ import java.util.UUID;
 
 public interface EventRepository extends JpaRepository<Event, UUID> {
     List<Event> findByStatusOrderByStartsAtAsc(EventStatus status);
+
+    List<Event> findByOrganizerIdOrderByStartsAtAsc(UUID organizerId);
 }
