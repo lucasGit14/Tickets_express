@@ -20,6 +20,9 @@ export function Header() {
         <nav className="nav">
           <Link to="/events">Eventos</Link>
           {isAuthenticated && <Link to="/my-events">Meus Eventos</Link>}
+          {isAuthenticated && user?.role === 'ORGANIZER' && (
+            <Link to="/events/new">Criar evento</Link>
+          )}
         </nav>
         <div className="auth-section">
           {isAuthenticated ? (
