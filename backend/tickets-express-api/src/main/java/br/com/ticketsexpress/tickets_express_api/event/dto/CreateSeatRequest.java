@@ -7,6 +7,6 @@ import jakarta.validation.constraints.NotNull;
 public record CreateSeatRequest(
         @NotBlank String rowLabel,
         @NotNull Integer seatNumber,
-        @NotNull SeatCategory category
+        SeatCategory category
 ) {
 }

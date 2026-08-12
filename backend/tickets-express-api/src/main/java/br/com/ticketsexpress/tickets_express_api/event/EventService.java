@@ -38,7 +38,7 @@ public class EventService {
             throw new IllegalArgumentException("Only organizers can create events");
         }
 
-        EventStatus status = request.status() == null ? EventStatus.DRAFT : request.status();
+        EventStatus status = request.status() == null ? EventStatus.PUBLISHED : request.status();
         Instant now = Instant.now(clockProvider.clock());
         Event event = new Event(
                 uuidProvider.randomUuid(),

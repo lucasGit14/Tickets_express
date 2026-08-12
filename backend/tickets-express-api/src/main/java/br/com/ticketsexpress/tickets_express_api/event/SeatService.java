@@ -51,7 +51,7 @@ public class SeatService {
                 event,
                 req.rowLabel(),
                 req.seatNumber(),
-                req.category()
+                req.category() == null ? SeatCategory.STANDARD : req.category()
         )).collect(Collectors.toList());
 
         List<Seat> saved = seatRepository.saveAll(toSave);

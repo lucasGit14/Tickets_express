@@ -10,8 +10,9 @@ import br.com.ticketsexpress.tickets_express_api.event.dto.CreateSeatRequest;
 import br.com.ticketsexpress.tickets_express_api.reservation.ReserveSeatsRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.resttestclient.TestRestTemplate;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -24,6 +25,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureTestRestTemplate
 public class ReservationFlowIntegrationTest {
 
     @Autowired
@@ -43,12 +45,15 @@ public class ReservationFlowIntegrationTest {
 
     @Test
     void fullReservationFlow() {
+        String organizerEmail = "org-" + UUID.randomUUID() + "@example.com";
+        String customerEmail = "cust-" + UUID.randomUUID() + "@example.com";
+
         // create organizer
-        ApplicationUser organizer = new ApplicationUser(UUID.randomUUID(), "Org", "org@example.com", passwordEncoder.encode("password"), UserRole.ORGANIZER, Instant.now());
+        ApplicationUser organizer = new ApplicationUser(UUID.randomUUID(), "Org", organizerEmail, passwordEncoder.encode("password"), UserRole.ORGANIZER, Instant.now());
         userRepository.save(organizer);
 
         // login organizer
-        ResponseEntity<Map> loginResp = rest.postForEntity("/api/auth/login", Map.of("email", "org@example.com", "password", "password"), Map.class);
+        ResponseEntity<Map> loginResp = rest.postForEntity("/api/auth/login", Map.of("email", organizerEmail, "password", "password"), Map.class);
         assertThat(loginResp.getStatusCode()).isEqualTo(HttpStatus.OK);
         String orgToken = (String) loginResp.getBody().get("token");
         assertThat(orgToken).isNotBlank();
@@ -77,11 +82,11 @@ public class ReservationFlowIntegrationTest {
         String seatId2 = (String) ((Map) seats.get(1)).get("id");
 
         // create customer
-        ApplicationUser customer = new ApplicationUser(UUID.randomUUID(), "Cust", "cust@example.com", passwordEncoder.encode("password"), UserRole.CUSTOMER, Instant.now());
+        ApplicationUser customer = new ApplicationUser(UUID.randomUUID(), "Cust", customerEmail, passwordEncoder.encode("password"), UserRole.CUSTOMER, Instant.now());
         userRepository.save(customer);
 
         // login customer
-        ResponseEntity<Map> loginCust = rest.postForEntity("/api/auth/login", Map.of("email", "cust@example.com", "password", "password"), Map.class);
+        ResponseEntity<Map> loginCust = rest.postForEntity("/api/auth/login", Map.of("email", customerEmail, "password", "password"), Map.class);
         assertThat(loginCust.getStatusCode()).isEqualTo(HttpStatus.OK);
         String custToken = (String) loginCust.getBody().get("token");
 
