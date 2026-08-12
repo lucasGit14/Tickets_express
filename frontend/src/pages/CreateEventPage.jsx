@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { eventAPI } from '../api/client'
 import { useAuth } from '../context/useAuth'
+import { friendlyError } from '../utils/format'
 
 export function CreateEventPage() {
   const { user } = useAuth()
@@ -19,11 +20,10 @@ export function CreateEventPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // simple guard: ensure only organizers can access (route is protected by authentication)
   if (user?.role !== 'ORGANIZER') {
     return (
       <div className="page-container">
-        <p>Você não tem permissão para acessar esta página.</p>
+        <p className="state-message">Você não tem permissão para acessar esta página.</p>
       </div>
     )
   }
@@ -35,24 +35,20 @@ export function CreateEventPage() {
 
     try {
       const payload = {
-        tmdbMovieId: tmdbMovieId ? Number(tmdbMovieId) : null,
+        tmdbMovieId: Number(tmdbMovieId),
         title,
         posterUrl: posterUrl || null,
         synopsis: synopsis || null,
         startsAt: startsAt ? new Date(startsAt).toISOString() : null,
         venue,
         address,
-        price: price ? Number(price) : null,
+        price: Number(price),
       }
 
-      await eventAPI.create(payload)
-      navigate('/events')
+      const res = await eventAPI.create(payload)
+      navigate(`/events/${res.data.id}/edit`)
     } catch (err) {
-      console.error('Create event failed', err)
-      const status = err?.response?.status
-      if (status === 400) setError('Dados inválidos. Verifique os campos e tente novamente.')
-      else if (status === 401) setError('Você precisa estar autenticado para criar eventos.')
-      else setError('Não foi possível criar o evento no momento. Tente novamente mais tarde.')
+      setError(friendlyError(err, 'Não foi possível criar o evento no momento.'))
     } finally {
       setLoading(false)
     }
@@ -66,46 +62,92 @@ export function CreateEventPage() {
 
       <form onSubmit={handleSubmit} className="event-form">
         <div className="form-group">
-          <label>TMDB Movie ID</label>
-          <input type="number" value={tmdbMovieId} onChange={(e) => setTmdbMovieId(e.target.value)} />
+          <label htmlFor="tmdbMovieId">TMDB Movie ID</label>
+          <input
+            id="tmdbMovieId"
+            type="number"
+            value={tmdbMovieId}
+            onChange={(e) => setTmdbMovieId(e.target.value)}
+            required
+          />
         </div>
 
         <div className="form-group">
-          <label>Título</label>
-          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
+          <label htmlFor="title">Título</label>
+          <input
+            id="title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
         </div>
 
         <div className="form-group">
-          <label>Poster URL</label>
-          <input type="url" value={posterUrl} onChange={(e) => setPosterUrl(e.target.value)} />
+          <label htmlFor="posterUrl">Poster URL</label>
+          <input
+            id="posterUrl"
+            type="url"
+            value={posterUrl}
+            onChange={(e) => setPosterUrl(e.target.value)}
+          />
         </div>
 
         <div className="form-group">
-          <label>Sinopse</label>
-          <textarea value={synopsis} onChange={(e) => setSynopsis(e.target.value)} />
+          <label htmlFor="synopsis">Sinopse</label>
+          <textarea
+            id="synopsis"
+            value={synopsis}
+            onChange={(e) => setSynopsis(e.target.value)}
+          />
         </div>
 
         <div className="form-group">
-          <label>Data e hora</label>
-          <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} required />
+          <label htmlFor="startsAt">Data e hora</label>
+          <input
+            id="startsAt"
+            type="datetime-local"
+            value={startsAt}
+            onChange={(e) => setStartsAt(e.target.value)}
+            required
+          />
         </div>
 
         <div className="form-group">
-          <label>Local (venue)</label>
-          <input type="text" value={venue} onChange={(e) => setVenue(e.target.value)} required />
+          <label htmlFor="venue">Local (venue)</label>
+          <input
+            id="venue"
+            type="text"
+            value={venue}
+            onChange={(e) => setVenue(e.target.value)}
+            required
+          />
         </div>
 
         <div className="form-group">
-          <label>Endereço</label>
-          <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} required />
+          <label htmlFor="address">Endereço</label>
+          <input
+            id="address"
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            required
+          />
         </div>
 
         <div className="form-group">
-          <label>Preço</label>
-          <input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required />
+          <label htmlFor="price">Preço</label>
+          <input
+            id="price"
+            type="number"
+            step="0.01"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            required
+          />
         </div>
 
-        <button type="submit" className="submit-btn" disabled={loading}>
+        <button type="submit" className="submit-btn action-btn" disabled={loading}>
           {loading ? 'Criando...' : 'Criar Evento'}
         </button>
       </form>

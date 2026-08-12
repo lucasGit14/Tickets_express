@@ -1,0 +1,287 @@
+.state-message {
+  color: #666;
+  margin: 1rem 0;
+}
+
+.success-message {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.events-grid,
+.tickets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.event-card,
+.ticket-card {
+  display: block;
+  text-align: left;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s, border-color 0.2s;
+  color: inherit;
+  font: inherit;
+  width: 100%;
+  cursor: pointer;
+}
+
+.event-card:hover,
+.ticket-card:hover {
+  border-color: #1e88e5;
+  box-shadow: 0 2px 8px rgba(30, 136, 229, 0.15);
+}
+
+.event-poster {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+}
+
+.event-title {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  color: #1565c0;
+}
+
+.event-price {
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.event-details {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.event-details-poster {
+  width: 180px;
+  max-width: 100%;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.event-synopsis {
+  margin-top: 0.75rem;
+  color: #555;
+  line-height: 1.5;
+}
+
+.seats-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.seat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.seat-item.selected {
+  border-color: #1e88e5;
+  background: #e3f2fd;
+}
+
+.seat-item.unavailable {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #f5f5f5;
+}
+
+.action-btn {
+  width: auto;
+  display: inline-block;
+  text-align: center;
+  margin-bottom: 0;
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.secondary-btn,
+.danger-btn {
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.secondary-btn {
+  background-color: #90caf9;
+  color: #0d47a1;
+}
+
+.secondary-btn:hover:not(:disabled) {
+  background-color: #64b5f6;
+}
+
+.danger-btn {
+  background-color: #ef9a9a;
+  color: #b71c1c;
+}
+
+.danger-btn:hover:not(:disabled) {
+  background-color: #e57373;
+}
+
+.secondary-btn:disabled,
+.danger-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.info-block,
+.result-block {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.info-block p,
+.result-block p {
+  margin: 0.35rem 0;
+}
+
+.ticket-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.qr-block {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.ticket-code {
+  margin-top: 0.75rem;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.muted {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.page-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.status-badge {
+  margin: 0.5rem 0 1rem;
+  font-weight: 500;
+}
+
+.event-form,
+.seat-form,
+.transfer-form,
+.validate-form {
+  background: white;
+  padding: 1.25rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  max-width: 640px;
+}
+
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 1rem;
+  min-height: 100px;
+  resize: vertical;
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: #1e88e5;
+  box-shadow: 0 0 4px rgba(30, 136, 229, 0.2);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+}
+
+.manage-section {
+  margin-top: 2rem;
+}
+
+.simple-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 1.25rem;
+}
+
+.simple-list li {
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.4rem;
+}
+
+.simple-list a {
+  color: #1565c0;
+}
+
+.simple-list a:hover {
+  text-decoration: underline;
+}
+
+.list-block {
+  margin-top: 1.5rem;
+}
+
+.hero {
+  background: white;
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.hero h1 {
+  color: #1565c0;
+  margin-bottom: 0.75rem;
+}

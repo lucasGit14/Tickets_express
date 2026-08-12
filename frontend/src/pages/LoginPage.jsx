@@ -19,9 +19,9 @@ export function LoginPage() {
 
     try {
       const response = await authAPI.login(email, password)
-      const { token } = response.data
+      const { token, id, name, email: userEmail, role } = response.data
 
-      login(token, email, email.split('@')[0], 'CUSTOMER')
+      login(token, { id, name, email: userEmail, role })
       navigate('/home')
     } catch (err) {
       const status = err.response?.status

@@ -1,16 +1,50 @@
-# React + Vite
+# Tickets Express — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interface React do Tickets Express (Vite + Axios + React Router).
 
-Currently, two official plugins are available:
+## Pré-requisitos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js 20+
+- Backend rodando em `http://localhost:8080` (ou URL em `VITE_API_URL`)
 
-## React Compiler
+## Configuração
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+cp .env.example .env
+```
 
-## Expanding the ESLint configuration
+```
+VITE_API_URL=http://localhost:8080/api
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Scripts
+
+```bash
+npm install
+npm run dev      # http://localhost:5173
+npm run lint
+npm run build
+npm run preview
+```
+
+## Rotas principais
+
+| Rota | Acesso | Descrição |
+|------|--------|-----------|
+| `/events` | Público | Eventos publicados |
+| `/events/:id` | Público | Detalhe + seleção de assentos |
+| `/payment/:id` | Autenticado | Pagamento simulado |
+| `/my-tickets` | CUSTOMER | Meus ingressos |
+| `/tickets/:id` | Autenticado | Detalhe + QR Code |
+| `/my-events` | ORGANIZER | Eventos do organizador |
+| `/events/new` | ORGANIZER | Criar evento |
+| `/events/:id/edit` | ORGANIZER | Editar, assentos, reservas |
+| `/validate` | GATEKEEPER | Validação de ingresso |
+| `/login` / `/register` | Público | Autenticação |
+
+## Autenticação
+
+- Token JWT em `localStorage`
+- Perfil restaurado com `GET /api/auth/me` após reload
+- Logout limpa token e usuário
+- Rotas protegidas por autenticação e role (`ProtectedRoute`)

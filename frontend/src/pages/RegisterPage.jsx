@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { authAPI } from '../api/client'
 import { useAuth } from '../context/useAuth'
+import { friendlyError } from '../utils/format'
 import '../styles/auth.css'
 
 export function RegisterPage() {
@@ -21,11 +22,22 @@ export function RegisterPage() {
 
     try {
       const response = await authAPI.register(name, email, password, role)
-      const { token } = response.data
-      login(token, email, name, role)
-      navigate('/')
+      const { token, id, name: userName, email: userEmail, role: userRole } =
+        response.data
+      login(token, {
+        id,
+        name: userName,
+        email: userEmail,
+        role: userRole,
+      })
+      navigate('/home')
     } catch (err) {
-      setError(err.response?.data?.message || 'Falha no cadastro')
+      const status = err.response?.status
+      if (status === 409) {
+        setError('Este e-mail já está cadastrado.')
+      } else {
+        setError(friendlyError(err, 'Não foi possível concluir o cadastro. Tente novamente.'))
+      }
     } finally {
       setLoading(false)
     }
