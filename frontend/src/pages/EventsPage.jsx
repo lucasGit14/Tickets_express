@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { eventAPI } from '../api/client'
 
 export function EventsPage() {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const navigate = useNavigate()
 
   useEffect(() => {
     let mounted = true
@@ -59,7 +61,7 @@ export function EventsPage() {
 
       <div className="events-grid">
         {events.map((ev) => (
-          <div key={ev.id} className="event-card">
+          <div key={ev.id} className="event-card" onClick={() => navigate(`/events/${ev.id}`)} style={{cursor: 'pointer'}}>
             <h3 className="event-title">{ev.title}</h3>
             <p className="event-starts">{formatDate(ev.startsAt)}</p>
             <p className="event-venue">{ev.venue} — {ev.address}</p>
