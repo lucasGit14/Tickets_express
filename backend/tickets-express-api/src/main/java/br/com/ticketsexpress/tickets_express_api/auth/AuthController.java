@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,11 +19,16 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final CurrentUserService currentUserService;
 
-    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthController(UserRepository userRepository,
+                          PasswordEncoder passwordEncoder,
+                          JwtService jwtService,
+                          CurrentUserService currentUserService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.currentUserService = currentUserService;
     }
 
     @PostMapping("/login")
@@ -37,8 +43,6 @@ public class AuthController {
         try {
             matches = passwordEncoder.matches(request.password(), user.getPasswordHash());
         } catch (Exception ex) {
-            // If the stored password hash is in an unexpected format, treat as invalid credentials.
-            // Log for diagnostics but avoid exposing password or hash contents.
             logger.warn("Password verification failed for user {}: {}", user.getEmail(), ex.getClass().getSimpleName());
             logger.debug("Password verification exception details", ex);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -52,14 +56,12 @@ public class AuthController {
         try {
             token = jwtService.generateToken(user);
         } catch (Exception ex) {
-            // If token generation fails for an unexpected reason, return 500 so the issue can be investigated.
-            // Log without exposing secrets.
             logger.error("Failed to generate JWT for user {}: {}", user.getEmail(), ex.getClass().getSimpleName());
             logger.debug("JWT generation exception details", ex);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
 
-        return ResponseEntity.ok(new LoginResponse(token));
+        return ResponseEntity.ok(toLoginResponse(token, user));
     }
 
     @PostMapping("/register")
@@ -68,7 +70,6 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
 
-        // allow only ORGANIZER or CUSTOMER; GATEKEEPER reserved for seed/admin
         UserRole role = request.role() == null ? UserRole.CUSTOMER : request.role();
         if (role != UserRole.CUSTOMER && role != UserRole.ORGANIZER) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -85,7 +86,16 @@ public class AuthController {
 
         userRepository.save(user);
         String token = jwtService.generateToken(user);
-        return ResponseEntity.status(HttpStatus.CREATED).body(new LoginResponse(token));
+        return ResponseEntity.status(HttpStatus.CREATED).body(toLoginResponse(token, user));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> me() {
+        ApplicationUser user = currentUserService.requireCurrentUser();
+        return ResponseEntity.ok(UserResponse.from(user));
+    }
+
+    private LoginResponse toLoginResponse(String token, ApplicationUser user) {
+        return new LoginResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole());
     }
 }
-
