@@ -14,13 +14,22 @@ import java.util.Date;
 @Service
 public class JwtService {
 
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(JwtService.class);
+
     private final Algorithm algorithm;
     private final JWTVerifier verifier;
     private final long expirationSeconds = 60 * 60 * 24; // 24h
 
     public JwtService(AppProperties properties) {
-        this.algorithm = Algorithm.HMAC256(properties.jwtSecret());
-        this.verifier = JWT.require(algorithm).build();
+        try {
+            this.algorithm = Algorithm.HMAC256(properties.jwtSecret());
+            this.verifier = JWT.require(algorithm).build();
+        } catch (Exception ex) {
+            // Log failure to initialize algorithm (do not log the secret)
+            logger.error("Failed to initialize JWT algorithm: {}", ex.getClass().getSimpleName());
+            logger.debug("JWT initialization exception details", ex);
+            throw ex;
+        }
     }
 
     public String generateToken(ApplicationUser user) {
@@ -38,6 +47,9 @@ public class JwtService {
             DecodedJWT decoded = verifier.verify(token);
             return decoded.getSubject();
         } catch (JWTVerificationException ex) {
+            // Log invalid token for diagnostics without recording the token itself
+            logger.warn("Invalid JWT token presented (verification failed): {}", ex.getClass().getSimpleName());
+            logger.debug("JWT verification exception details", ex);
             throw new IllegalArgumentException("Invalid token", ex);
         }
     }
@@ -47,6 +59,7 @@ public class JwtService {
             verifier.verify(token);
             return true;
         } catch (JWTVerificationException ex) {
+            logger.debug("JWT validation failed: {}", ex.getClass().getSimpleName());
             return false;
         }
     }

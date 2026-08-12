@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/auth")
 public class AuthController {
 
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AuthController.class);
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -31,11 +33,32 @@ public class AuthController {
         }
 
         var user = userOpt.get();
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+        boolean matches;
+        try {
+            matches = passwordEncoder.matches(request.password(), user.getPasswordHash());
+        } catch (Exception ex) {
+            // If the stored password hash is in an unexpected format, treat as invalid credentials.
+            // Log for diagnostics but avoid exposing password or hash contents.
+            logger.warn("Password verification failed for user {}: {}", user.getEmail(), ex.getClass().getSimpleName());
+            logger.debug("Password verification exception details", ex);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        String token = jwtService.generateToken(user);
+        if (!matches) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String token;
+        try {
+            token = jwtService.generateToken(user);
+        } catch (Exception ex) {
+            // If token generation fails for an unexpected reason, return 500 so the issue can be investigated.
+            // Log without exposing secrets.
+            logger.error("Failed to generate JWT for user {}: {}", user.getEmail(), ex.getClass().getSimpleName());
+            logger.debug("JWT generation exception details", ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+
         return ResponseEntity.ok(new LoginResponse(token));
     }
 
