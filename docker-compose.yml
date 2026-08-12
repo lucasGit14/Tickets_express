@@ -3,16 +3,56 @@ services:
     image: postgres:16-alpine
     container_name: tickets-express-postgres
     environment:
-      POSTGRES_DB: tickets_express
-      POSTGRES_USER: tickets_express
-      POSTGRES_PASSWORD: tickets_express_local
+      POSTGRES_DB: ${POSTGRES_DB:-tickets_express}
+      POSTGRES_USER: ${POSTGRES_USER:-tickets_express}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tickets_express_local}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tickets_express -d tickets_express"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tickets_express} -d ${POSTGRES_DB:-tickets_express}"]
       interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend/tickets-express-api
+    container_name: tickets-express-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-tickets_express}
+      DB_USER: ${POSTGRES_USER:-tickets_express}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-tickets_express_local}
+      JWT_SECRET: ${JWT_SECRET:-troque-por-uma-chave-com-no-minimo-32-caracteres}
+      QR_SECRET: ${QR_SECRET:-troque-por-uma-chave-qr-com-no-minimo-32-caracteres}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      TMDB_TOKEN: ${TMDB_TOKEN:-}
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8080/api}
+    container_name: tickets-express-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "5173:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ || exit 1"]
+      interval: 15s
       timeout: 5s
       retries: 10
 

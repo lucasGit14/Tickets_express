@@ -1,0 +1,376 @@
+openapi: 3.0.3
+info:
+  title: Tickets Express API
+  version: 1.0.0
+  description: |
+    API de autenticação JWT, eventos, reservas, ingressos e validação de portaria.
+    Autenticação: header `Authorization: Bearer <token>`.
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: Auth
+  - name: Events
+  - name: Seats
+  - name: Reservations
+  - name: Tickets
+paths:
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '401':
+          description: Credenciais inválidas
+
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Cadastro (CUSTOMER ou ORGANIZER)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                password: { type: string }
+                role: { type: string, enum: [CUSTOMER, ORGANIZER] }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '409':
+          description: Email já cadastrado
+
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Perfil do usuário autenticado
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '401':
+          description: Não autenticado
+
+  /api/events:
+    get:
+      tags: [Events]
+      summary: Lista eventos publicados
+      security: []
+      responses:
+        '200':
+          description: OK
+    post:
+      tags: [Events]
+      summary: Cria evento (ORGANIZER) — status padrão DRAFT
+      responses:
+        '201':
+          description: Criado
+        '403':
+          description: Sem permissão
+
+  /api/events/mine:
+    get:
+      tags: [Events]
+      summary: Eventos do organizador autenticado
+      responses:
+        '200':
+          description: OK
+
+  /api/events/{id}:
+    get:
+      tags: [Events]
+      summary: Detalhe do evento
+      description: |
+        Públicos apenas se PUBLISHED. DRAFT/CANCELLED visíveis ao dono ORGANIZER ou GATEKEEPER.
+        Caso contrário retorna 404.
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      security: []
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: Não encontrado ou não visível
+    put:
+      tags: [Events]
+      summary: Atualiza evento (somente dono ORGANIZER)
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Não é o dono
+        '404':
+          description: Não encontrado
+
+  /api/events/{id}/publish:
+    post:
+      tags: [Events]
+      summary: Publica evento
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+
+  /api/events/{id}/cancel:
+    post:
+      tags: [Events]
+      summary: Cancela evento
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+
+  /api/events/{id}/reservations:
+    get:
+      tags: [Events]
+      summary: Reservas e ingressos do evento (ORGANIZER dono)
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+
+  /api/events/{eventId}/seats:
+    get:
+      tags: [Seats]
+      summary: Lista assentos (inclui available)
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      security: []
+      responses:
+        '200':
+          description: OK
+    post:
+      tags: [Seats]
+      summary: Cadastra assentos (ORGANIZER dono)
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Criado
+
+  /api/reservations:
+    post:
+      tags: [Reservations]
+      summary: Cria reserva PENDING (CUSTOMER)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [eventId, seatIds]
+              properties:
+                eventId: { type: string, format: uuid }
+                seatIds:
+                  type: array
+                  items: { type: string, format: uuid }
+                  minItems: 1
+      responses:
+        '201':
+          description: Reserva PENDING criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReservationResponse' }
+        '403':
+          description: Não é CUSTOMER
+
+  /api/reservations/me:
+    get:
+      tags: [Reservations]
+      summary: Minhas reservas (CUSTOMER)
+      responses:
+        '200':
+          description: OK
+
+  /api/reservations/{id}:
+    get:
+      tags: [Reservations]
+      summary: Detalhe da reserva
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+
+  /api/reservations/{id}/pay:
+    post:
+      tags: [Reservations]
+      summary: Pagamento simulado — gera ingressos VALID
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Reserva PAID com tickets
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReservationResponse' }
+
+  /api/reservations/{id}/cancel:
+    post:
+      tags: [Reservations]
+      summary: Cancela reserva PENDING e libera assentos
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+
+  /api/tickets/me:
+    get:
+      tags: [Tickets]
+      summary: Meus ingressos (proprietário atual)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TicketResponse' }
+
+  /api/tickets/{id}:
+    get:
+      tags: [Tickets]
+      summary: Detalhe do ingresso (inclui código bruto para QR)
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+
+  /api/tickets/validate:
+    post:
+      tags: [Tickets]
+      summary: Valida ingresso (GATEKEEPER) e marca USED
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string }
+      responses:
+        '200':
+          description: Validado
+        '400':
+          description: Já usado / inválido
+        '403':
+          description: Não é GATEKEEPER
+        '404':
+          description: Código inexistente
+
+  /api/tickets/{id}/transfer:
+    post:
+      tags: [Tickets]
+      summary: Transfere ingresso para outro CUSTOMER
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '200':
+          description: Transferido
+        '400':
+          description: USED ou destino inválido
+        '403':
+          description: Não é o proprietário
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  schemas:
+    LoginResponse:
+      type: object
+      properties:
+        token: { type: string }
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [CUSTOMER, ORGANIZER, GATEKEEPER] }
+    UserResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [CUSTOMER, ORGANIZER, GATEKEEPER] }
+    ReservationResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        eventId: { type: string, format: uuid }
+        eventTitle: { type: string }
+        status: { type: string, enum: [PENDING, PAID, CANCELLED, EXPIRED, DECLINED] }
+        totalAmount: { type: number }
+        expiresAt: { type: string, format: date-time }
+        tickets:
+          type: array
+          items: { $ref: '#/components/schemas/TicketResponse' }
+    TicketResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string, description: Código bruto (conteúdo do QR) }
+        eventTitle: { type: string }
+        rowLabel: { type: string }
+        seatNumber: { type: integer }
+        ownerEmail: { type: string }
+        status: { type: string, enum: [VALID, USED, CANCELLED] }
+        usedAt: { type: string, format: date-time, nullable: true }
+security:
+  - bearerAuth: []

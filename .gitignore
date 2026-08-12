@@ -34,3 +34,7 @@ node_modules/
 .idea/
 *.iml
 frontend/dist/
+.env
+**/.env
+!.env.example
+
