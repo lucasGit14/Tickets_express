@@ -1,171 +1,78 @@
-import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { eventAPI, reservationAPI } from '../api/client'
-import { useAuth } from '../context/useAuth'
-import { formatDate, formatPrice, friendlyError } from '../utils/format'
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 
 export function EventDetailsPage() {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const { isAuthenticated } = useAuth()
-
-  const [event, setEvent] = useState(null)
-  const [seats, setSeats] = useState([])
-  const [selected, setSelected] = useState(() => new Set())
-  const [loading, setLoading] = useState(true)
-  const [reserving, setReserving] = useState(false)
-  const [loadError, setLoadError] = useState('')
-  const [actionError, setActionError] = useState('')
+  const { id } = useParams();
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true
-
-    Promise.all([eventAPI.getById(id), eventAPI.listSeats(id)])
-      .then(([evRes, seatsRes]) => {
-        if (!mounted) return
-        setEvent(evRes.data)
-        setSeats(seatsRes.data || [])
-      })
-      .catch(() => {
-        if (!mounted) return
-        setLoadError(
-          'Não foi possível carregar os detalhes do evento. Tente novamente mais tarde.'
-        )
-      })
-      .finally(() => {
-        if (mounted) setLoading(false)
-      })
-
-    return () => {
-      mounted = false
-    }
-  }, [id])
-
-  const toggleSeat = (seatId, available) => {
-    if (!available) return
-    setSelected((prev) => {
-      const copy = new Set(prev)
-      if (copy.has(seatId)) copy.delete(seatId)
-      else copy.add(seatId)
-      return copy
-    })
-  }
-
-  const handleReserve = async () => {
-    if (!isAuthenticated) {
-      navigate('/login')
-      return
-    }
-
-    if (selected.size === 0) {
-      setActionError('Selecione ao menos 1 assento para reservar.')
-      return
-    }
-
-    setActionError('')
-    setReserving(true)
-
-    try {
-      const seatIds = Array.from(selected)
-      const res = await reservationAPI.reserve(id, seatIds)
-      navigate(`/payment/${res.data.id}`)
-    } catch (err) {
-      setActionError(
-        friendlyError(err, 'Erro ao reservar. Tente novamente mais tarde.')
-      )
-    } finally {
-      setReserving(false)
-    }
-  }
+    fetch(`http://localhost:8080/api/events/${id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setEvent(data);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error("Erro ao carregar evento:", err);
+          setLoading(false);
+        });
+  }, [id]);
 
   if (loading) {
-    return (
-      <div className="page-container">
-        <p className="state-message">Carregando...</p>
-      </div>
-    )
-  }
-
-  if (loadError) {
-    return (
-      <div className="page-container">
-        <div className="error-message">{loadError}</div>
-      </div>
-    )
+    return <div className="text-center py-20 text-slate-500 font-medium">Carregando detalhes...</div>;
   }
 
   if (!event) {
-    return (
-      <div className="page-container">
-        <p className="state-message">Evento não encontrado.</p>
-      </div>
-    )
+    return <div className="text-center py-20 text-slate-500 font-medium">Evento não encontrado.</div>;
   }
 
-  const availableSeats = seats.filter((s) => s.available)
-
   return (
-    <div className="page-container">
-      <div className="event-details">
-        {event.posterUrl && (
-          <img src={event.posterUrl} alt="" className="event-details-poster" />
-        )}
-        <div>
-          <h2>{event.title}</h2>
-          <p>{formatDate(event.startsAt)}</p>
-          <p>
-            {event.venue} — {event.address}
-          </p>
-          <p className="event-price">{formatPrice(event.price)}</p>
-          {event.synopsis && <p className="event-synopsis">{event.synopsis}</p>}
+      <div className="min-h-screen bg-slate-50 py-10 px-6">
+        <div className="max-w-4xl mx-auto bg-white rounded-3xl border border-slate-200/60 shadow-xl overflow-hidden">
+          <div className="relative aspect-video w-full bg-slate-900">
+            <img
+                src={event.imageUrl || 'https://via.placeholder.com/1200x600'}
+                alt={event.title}
+                className="w-full h-full object-cover"
+            />
+          </div>
+
+          <div className="p-8 space-y-6">
+            <div className="space-y-2">
+            <span className="text-xs font-bold text-violet-600 bg-violet-50 px-3 py-1 rounded-full">
+              📅 {event.date || 'Data a definir'}
+            </span>
+              <h1 className="text-3xl font-black text-slate-900">{event.title}</h1>
+              <p className="text-sm text-slate-500 font-medium">📍 {event.location || 'Local a definir'}</p>
+            </div>
+
+            <hr className="border-slate-100" />
+
+            <div className="space-y-2">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Sobre o evento</h3>
+              <p className="text-slate-600 text-sm leading-relaxed">{event.description || 'Sem descrição informada.'}</p>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <div>
+                <span className="text-xs text-slate-400 font-medium block">Valor do ingresso</span>
+                <span className="text-2xl font-black text-violet-700">
+                {event.price ? `R$ ${Number(event.price).toFixed(2)}` : 'Grátis'}
+              </span>
+              </div>
+
+              <Link
+                  to={`/payment/${event.id}`}
+                  className="bg-violet-600 hover:bg-violet-700 text-white font-extrabold px-8 py-3.5 rounded-xl transition-all shadow-md shadow-violet-200 active:scale-95"
+              >
+                Garantir Ingresso
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
-
-      <h3>Assentos</h3>
-      {seats.length === 0 && (
-        <p className="state-message">Não há assentos cadastrados para este evento.</p>
-      )}
-      {seats.length > 0 && availableSeats.length === 0 && (
-        <p className="state-message">Não há assentos disponíveis no momento.</p>
-      )}
-
-      {actionError && <div className="error-message">{actionError}</div>}
-
-      <div className="seats-list">
-        {seats.map((s) => {
-          const seatId = s.id
-          const isSelected = selected.has(seatId)
-          const available = s.available !== false
-          return (
-            <label
-              key={seatId}
-              className={`seat-item ${isSelected ? 'selected' : ''} ${!available ? 'unavailable' : ''}`}
-            >
-              <input
-                type="checkbox"
-                checked={isSelected}
-                disabled={!available}
-                onChange={() => toggleSeat(seatId, available)}
-              />
-              <span>
-                {s.rowLabel}
-                {s.seatNumber}
-                {s.category ? ` — ${s.category}` : ''}
-                {!available ? ' (indisponível)' : ''}
-              </span>
-            </label>
-          )
-        })}
-      </div>
-
-      <button
-        type="button"
-        onClick={handleReserve}
-        disabled={reserving || selected.size === 0}
-        className="submit-btn action-btn"
-      >
-        {reserving ? 'Reservando...' : 'Reservar e ir para pagamento'}
-      </button>
-    </div>
-  )
+  );
 }
+
+export default EventDetailsPage;

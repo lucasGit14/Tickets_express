@@ -1,73 +1,44 @@
-import { useState, useCallback, useEffect } from 'react'
-import { AuthContext } from './auth-context'
-import { authAPI } from '../api/client'
+import { createContext, useContext, useState } from 'react';
+
+export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [token, setToken] = useState(() => localStorage.getItem('token'))
-  const [loading, setLoading] = useState(() => !!localStorage.getItem('token'))
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false
-    const stored = localStorage.getItem('token')
+  const login = async (email, password) => {
+    setLoading(true);
+    const response = await fetch('http://localhost:8080/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
 
-    if (!stored) {
-      return undefined
-    }
+    if (!response.ok) throw new Error('Falha na autenticação');
 
-    authAPI
-      .me()
-      .then((res) => {
-        if (cancelled) return
-        const data = res.data
-        setUser({
-          id: data.id,
-          name: data.name,
-          email: data.email,
-          role: data.role,
-        })
-        setToken(stored)
-      })
-      .catch(() => {
-        if (cancelled) return
-        localStorage.removeItem('token')
-        setToken(null)
-        setUser(null)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
+    const data = await response.json();
+    setUser(data.user || data);
+    if (data.token) localStorage.setItem('token', data.token);
+    setLoading(false);
+  };
 
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('token');
+  };
 
-  const login = useCallback((newToken, userData) => {
-    setToken(newToken)
-    setUser({
-      id: userData.id,
-      name: userData.name,
-      email: userData.email,
-      role: userData.role,
-    })
-    localStorage.setItem('token', newToken)
-  }, [])
+  const isAuthenticated = !!user;
 
-  const logout = useCallback(() => {
-    setToken(null)
-    setUser(null)
-    localStorage.removeItem('token')
-  }, [])
-
-  const value = {
-    user,
-    token,
-    loading,
-    login,
-    logout,
-    isAuthenticated: !!token && !!user,
-  }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+      <AuthContext.Provider value={{ user, login, logout, isAuthenticated, loading }}>
+        {children}
+      </AuthContext.Provider>
+  );
 }
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  return context || { user: null, login: async () => {}, logout: () => {} };
+}
+
+export default AuthContext;

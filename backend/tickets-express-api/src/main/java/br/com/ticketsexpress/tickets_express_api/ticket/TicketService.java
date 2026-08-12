@@ -4,7 +4,18 @@ import br.com.ticketsexpress.tickets_express_api.auth.ApplicationUser;
 import br.com.ticketsexpress.tickets_express_api.auth.CurrentUserService;
 import br.com.ticketsexpress.tickets_express_api.auth.UserRepository;
 import br.com.ticketsexpress.tickets_express_api.auth.UserRole;
+import br.com.ticketsexpress.tickets_express_api.event.Event;
+import br.com.ticketsexpress.tickets_express_api.event.EventRepository;
+import br.com.ticketsexpress.tickets_express_api.event.EventStatus;
+import br.com.ticketsexpress.tickets_express_api.event.Seat;
+import br.com.ticketsexpress.tickets_express_api.event.SeatRepository;
+import br.com.ticketsexpress.tickets_express_api.reservation.Reservation;
+import br.com.ticketsexpress.tickets_express_api.reservation.ReservationRepository;
+import br.com.ticketsexpress.tickets_express_api.reservation.ReservationSeatRepository;
+import br.com.ticketsexpress.tickets_express_api.reservation.ReservationService;
 import br.com.ticketsexpress.tickets_express_api.reservation.ReservationStatus;
+import br.com.ticketsexpress.tickets_express_api.reservation.ReserveSeatsRequest;
+import br.com.ticketsexpress.tickets_express_api.reservation.ReservationResponse;
 import br.com.ticketsexpress.tickets_express_api.shared.ClockProvider;
 import br.com.ticketsexpress.tickets_express_api.shared.ForbiddenException;
 import br.com.ticketsexpress.tickets_express_api.shared.ResourceNotFoundException;
@@ -14,6 +25,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -25,19 +37,34 @@ public class TicketService {
     private final CurrentUserService currentUserService;
     private final ClockProvider clockProvider;
     private final UuidProvider uuidProvider;
+    private final EventRepository eventRepository;
+    private final SeatRepository seatRepository;
+    private final ReservationRepository reservationRepository;
+    private final ReservationSeatRepository reservationSeatRepository;
+    private final ReservationService reservationService;
 
     public TicketService(TicketRepository ticketRepository,
                          TicketTransferRepository ticketTransferRepository,
                          UserRepository userRepository,
                          CurrentUserService currentUserService,
                          ClockProvider clockProvider,
-                         UuidProvider uuidProvider) {
+                         UuidProvider uuidProvider,
+                         EventRepository eventRepository,
+                         SeatRepository seatRepository,
+                         ReservationRepository reservationRepository,
+                         ReservationSeatRepository reservationSeatRepository,
+                         ReservationService reservationService) {
         this.ticketRepository = ticketRepository;
         this.ticketTransferRepository = ticketTransferRepository;
         this.userRepository = userRepository;
         this.currentUserService = currentUserService;
         this.clockProvider = clockProvider;
         this.uuidProvider = uuidProvider;
+        this.eventRepository = eventRepository;
+        this.seatRepository = seatRepository;
+        this.reservationRepository = reservationRepository;
+        this.reservationSeatRepository = reservationSeatRepository;
+        this.reservationService = reservationService;
     }
 
     @Transactional
@@ -162,6 +189,34 @@ public class TicketService {
         ));
 
         return toResponse(saved);
+    }
+
+    @Transactional
+    public TicketResponse purchase(UUID eventId, PurchaseRequest request) {
+        ApplicationUser customer = currentUserService.requireCurrentUser();
+        if (customer.getRole() != UserRole.CUSTOMER) {
+            throw new ForbiddenException("Only customers can purchase tickets");
+        }
+
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+
+        if (event.getStatus() == EventStatus.CANCELLED) {
+            throw new IllegalArgumentException("Event is cancelled");
+        }
+        if (event.getStatus() != EventStatus.PUBLISHED) {
+            throw new IllegalArgumentException("Event is not available for purchase");
+        }
+
+        Seat availableSeat = seatRepository.findFirstAvailableByEventId(eventId, List.of(ReservationStatus.PENDING, ReservationStatus.PAID))
+                .orElseThrow(() -> new IllegalArgumentException("No tickets available for this event"));
+
+        ReserveSeatsRequest reserveRequest = new ReserveSeatsRequest(eventId, List.of(availableSeat.getId()));
+        ReservationResponse reservationResponse = reservationService.reserveSeats(reserveRequest);
+
+        ReservationResponse paidResponse = reservationService.pay(reservationResponse.id());
+        
+        return paidResponse.tickets().get(0);
     }
 
     private TicketResponse toResponse(Ticket ticket) {

@@ -42,4 +42,9 @@ public class TicketController {
                                                    @Valid @RequestBody TransferTicketRequest request) {
         return ResponseEntity.ok(ticketService.transfer(id, request));
     }
+
+    @PostMapping("/purchase/{eventId}")
+    public ResponseEntity<?> purchase(@PathVariable UUID eventId, @RequestBody PurchaseRequest request) {
+        return ResponseEntity.ok(ticketService.purchase(eventId, request));
+    }
 }

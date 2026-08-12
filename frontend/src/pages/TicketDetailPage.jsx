@@ -1,130 +1,51 @@
-import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { ticketAPI } from '../api/client'
-import { formatDate, friendlyError } from '../utils/format'
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 
 export function TicketDetailPage() {
-  const { id } = useParams()
-  const [ticket, setTicket] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [transferEmail, setTransferEmail] = useState('')
-  const [transferring, setTransferring] = useState(false)
-  const [message, setMessage] = useState('')
+  const { id } = useParams();
+  const [ticket, setTicket] = useState(null);
 
   useEffect(() => {
-    let mounted = true
-
-    ticketAPI
-      .getById(id)
-      .then((res) => {
-        if (!mounted) return
-        setTicket(res.data)
-      })
-      .catch(() => {
-        if (!mounted) return
-        setError('Não foi possível carregar o ingresso.')
-      })
-      .finally(() => {
-        if (mounted) setLoading(false)
-      })
-
-    return () => {
-      mounted = false
-    }
-  }, [id])
-
-  const handleTransfer = async (e) => {
-    e.preventDefault()
-    setMessage('')
-    setError('')
-    setTransferring(true)
-    try {
-      const res = await ticketAPI.transfer(id, transferEmail)
-      setTicket(res.data)
-      setMessage('Ingresso transferido com sucesso.')
-      setTransferEmail('')
-    } catch (err) {
-      setError(friendlyError(err, 'Não foi possível transferir o ingresso.'))
-    } finally {
-      setTransferring(false)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="page-container">
-        <p className="state-message">Carregando ingresso...</p>
-      </div>
-    )
-  }
-
-  if (error && !ticket) {
-    return (
-      <div className="page-container">
-        <div className="error-message">{error}</div>
-      </div>
-    )
-  }
-
-  if (!ticket) {
-    return (
-      <div className="page-container">
-        <p className="state-message">Ingresso não encontrado.</p>
-      </div>
-    )
-  }
-
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(ticket.code)}`
+    const token = localStorage.getItem('token');
+    fetch(`http://localhost:8080/api/tickets/${id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+        .then((res) => res.json())
+        .then((data) => setTicket(data))
+        .catch((err) => console.error('Erro ao carregar ingresso:', err));
+  }, [id]);
 
   return (
-    <div className="page-container">
-      <h2>Ingresso</h2>
+      <div className="min-h-screen bg-slate-50 py-10 px-6">
+        <div className="max-w-md mx-auto bg-white rounded-3xl border border-slate-200/60 shadow-xl overflow-hidden p-6 space-y-6 text-center">
+          <div>
+          <span className="text-[10px] font-black uppercase px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
+            Ingresso Válido
+          </span>
+            <h1 className="text-2xl font-black text-slate-900 mt-2">{ticket?.eventTitle || 'Detalhes do Ingresso'}</h1>
+            <p className="text-xs text-slate-400 font-mono">Código: #{id}</p>
+          </div>
 
-      {message && <div className="success-message">{message}</div>}
-      {error && <div className="error-message">{error}</div>}
+          <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 flex justify-center items-center">
+            <div className="w-40 h-40 bg-slate-900 rounded-xl flex items-center justify-center text-white font-mono text-xs font-bold">
+              [ QR CODE ]
+            </div>
+          </div>
 
-      <div className="ticket-detail">
-        <div className="qr-block">
-          <img src={qrUrl} alt={`QR Code do ingresso ${ticket.code}`} />
-          <p className="ticket-code">{ticket.code}</p>
-        </div>
+          <div className="text-left bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-1 text-xs">
+            <p><strong className="text-slate-700">Data:</strong> {ticket?.eventDate || 'A definir'}</p>
+            <p><strong className="text-slate-700">Local:</strong> {ticket?.eventLocation || 'A definir'}</p>
+          </div>
 
-        <div className="info-block">
-          <p>
-            Evento: <strong>{ticket.eventTitle}</strong>
-          </p>
-          <p>
-            Assento: {ticket.rowLabel}
-            {ticket.seatNumber}
-            {ticket.seatCategory ? ` — ${ticket.seatCategory}` : ''}
-          </p>
-          <p>Status: {ticket.status}</p>
-          <p>Titular: {ticket.ownerName}</p>
-          <p>Criado em: {formatDate(ticket.createdAt)}</p>
-          {ticket.usedAt && <p>Utilizado em: {formatDate(ticket.usedAt)}</p>}
+          <Link
+              to="/my-tickets"
+              className="block w-full border border-slate-200 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-50 transition-all text-xs"
+          >
+            Voltar para Meus Ingressos
+          </Link>
         </div>
       </div>
-
-      {ticket.status === 'VALID' && (
-        <form onSubmit={handleTransfer} className="transfer-form">
-          <h3>Transferir ingresso</h3>
-          <div className="form-group">
-            <label htmlFor="transferEmail">E-mail do destinatário</label>
-            <input
-              id="transferEmail"
-              type="email"
-              value={transferEmail}
-              onChange={(e) => setTransferEmail(e.target.value)}
-              required
-              placeholder="destinatario@email.com"
-            />
-          </div>
-          <button type="submit" className="submit-btn action-btn" disabled={transferring}>
-            {transferring ? 'Transferindo...' : 'Transferir'}
-          </button>
-        </form>
-      )}
-    </div>
-  )
+  );
 }
+
+export default TicketDetailPage;

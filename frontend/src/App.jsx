@@ -14,9 +14,7 @@ import { PaymentPage } from './pages/PaymentPage'
 import { MyTicketsPage } from './pages/MyTicketsPage'
 import { TicketDetailPage } from './pages/TicketDetailPage'
 import { ValidateTicketPage } from './pages/ValidateTicketPage'
-import './styles/global.css'
-import './styles/auth.css'
-import './styles/pages.css'
+import './index.css'
 
 function App() {
   return (

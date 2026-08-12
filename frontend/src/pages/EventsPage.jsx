@@ -1,67 +1,52 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { eventAPI } from '../api/client'
-import { formatDate, formatPrice } from '../utils/format'
+import { useState, useEffect } from 'react';
+import { EventCard } from '../components/EventCard';
 
 export function EventsPage() {
-  const [events, setEvents] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const navigate = useNavigate()
+    const [events, setEvents] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let mounted = true
+    useEffect(() => {
+        fetch('http://localhost:8080/api/events')
+            .then((res) => res.json())
+            .then((data) => {
+                setEvents(Array.isArray(data) ? data : []);
+                setLoading(false);
+            })
+            .catch((err) => {
+                console.error("Erro ao buscar eventos:", err);
+                setLoading(false);
+            });
+    }, []);
 
-    eventAPI
-      .listPublished()
-      .then((res) => {
-        if (!mounted) return
-        setEvents(res.data || [])
-      })
-      .catch(() => {
-        if (!mounted) return
-        setError('Não foi possível carregar os eventos. Tente novamente mais tarde.')
-      })
-      .finally(() => {
-        if (mounted) setLoading(false)
-      })
+    return (
+        <div className="min-h-screen bg-slate-50 py-10 px-6">
+            <div className="max-w-7xl mx-auto space-y-8">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-black text-slate-900">Todos os Eventos</h1>
+                        <p className="text-xs text-slate-500 font-medium">Confira a lista completa de eventos disponíveis</p>
+                    </div>
+                    <span className="text-xs font-bold bg-violet-100 text-violet-700 px-3 py-1 rounded-full">
+            {events.length} eventos
+          </span>
+                </div>
 
-    return () => {
-      mounted = false
-    }
-  }, [])
-
-  return (
-    <div className="page-container">
-      <h2>Eventos</h2>
-
-      {loading && <p className="state-message">Carregando eventos...</p>}
-      {error && <div className="error-message">{error}</div>}
-
-      {!loading && !error && events.length === 0 && (
-        <p className="state-message">Não há eventos publicados no momento.</p>
-      )}
-
-      <div className="events-grid">
-        {events.map((ev) => (
-          <button
-            type="button"
-            key={ev.id}
-            className="event-card"
-            onClick={() => navigate(`/events/${ev.id}`)}
-          >
-            {ev.posterUrl && (
-              <img src={ev.posterUrl} alt="" className="event-poster" />
-            )}
-            <h3 className="event-title">{ev.title}</h3>
-            <p className="event-starts">{formatDate(ev.startsAt)}</p>
-            <p className="event-venue">
-              {ev.venue} — {ev.address}
-            </p>
-            <p className="event-price">{formatPrice(ev.price)}</p>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
+                {loading ? (
+                    <div className="text-center py-16 text-slate-500 font-medium">Carregando eventos...</div>
+                ) : events.length === 0 ? (
+                    <div className="bg-white rounded-2xl border border-slate-200/60 p-12 text-center text-slate-500">
+                        Nenhum evento encontrado.
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {events.map((event) => (
+                            <EventCard key={event.id} event={event} />
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 }
+
+export default EventsPage;

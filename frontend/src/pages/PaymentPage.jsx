@@ -1,168 +1,105 @@
-import { useEffect, useState } from 'react'
-import { Link, useParams, useNavigate } from 'react-router-dom'
-import { reservationAPI } from '../api/client'
-import { formatDate, formatPrice, friendlyError } from '../utils/format'
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 
 export function PaymentPage() {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const [reservation, setReservation] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [paying, setPaying] = useState(false)
-  const [error, setError] = useState('')
-  const [paid, setPaid] = useState(false)
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState('CARD');
 
   useEffect(() => {
-    let mounted = true
+    fetch(`http://localhost:8080/api/events/${id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setEvent(data);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error('Erro ao carregar dados:', err);
+          setLoading(false);
+        });
+  }, [id]);
 
-    reservationAPI
-      .getById(id)
-      .then((res) => {
-        if (!mounted) return
-        setReservation(res.data)
-        if (res.data.status === 'PAID') setPaid(true)
-      })
-      .catch(() => {
-        if (!mounted) return
-        setError('Não foi possível carregar a reserva.')
-      })
-      .finally(() => {
-        if (mounted) setLoading(false)
-      })
-
-    return () => {
-      mounted = false
-    }
-  }, [id])
-
-  const handlePay = async () => {
-    setError('')
-    setPaying(true)
+  const handleConfirmPayment = async () => {
+    const token = localStorage.getItem('token');
     try {
-      const res = await reservationAPI.pay(id)
-      setReservation(res.data)
-      setPaid(true)
+      const response = await fetch(`http://localhost:8080/api/tickets/purchase/${id}`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ paymentMethod })
+      });
+      if (response.ok) {
+        alert('Pagamento aprovado com sucesso!');
+        navigate('/my-tickets');
+      } else {
+        const errorData = await response.json();
+        const errorMessage = errorData.message || errorData.error || 'Erro ao processar pagamento';
+        console.error('Erro no pagamento:', errorData);
+        alert(errorMessage);
+      }
     } catch (err) {
-      setError(friendlyError(err, 'Não foi possível concluir o pagamento.'))
-    } finally {
-      setPaying(false)
+      console.error('Erro ao processar pagamento:', err);
+      alert('Erro ao processar pagamento');
     }
-  }
+  };
 
-  const handleCancel = async () => {
-    setError('')
-    setPaying(true)
-    try {
-      await reservationAPI.cancel(id)
-      navigate('/events')
-    } catch (err) {
-      setError(friendlyError(err, 'Não foi possível cancelar a reserva.'))
-    } finally {
-      setPaying(false)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="page-container">
-        <p className="state-message">Carregando reserva...</p>
-      </div>
-    )
-  }
-
-  if (error && !reservation) {
-    return (
-      <div className="page-container">
-        <div className="error-message">{error}</div>
-      </div>
-    )
-  }
-
-  if (!reservation) {
-    return (
-      <div className="page-container">
-        <p className="state-message">Reserva não encontrada.</p>
-      </div>
-    )
-  }
-
-  if (paid) {
-    return (
-      <div className="page-container">
-        <div className="success-message">Pagamento confirmado!</div>
-        <h2>Confirmação</h2>
-        <p>
-          Evento: <strong>{reservation.eventTitle}</strong>
-        </p>
-        <p>Total: {formatPrice(reservation.totalAmount)}</p>
-        <p>Status: {reservation.status}</p>
-        {reservation.paymentReference && (
-          <p>Referência: {reservation.paymentReference}</p>
-        )}
-
-        {reservation.tickets?.length > 0 && (
-          <div className="list-block">
-            <h3>Seus ingressos</h3>
-            <ul className="simple-list">
-              {reservation.tickets.map((t) => (
-                <li key={t.id}>
-                  <Link to={`/tickets/${t.id}`}>
-                    {t.code} — {t.rowLabel}
-                    {t.seatNumber}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <div className="btn-row">
-          <Link to="/my-tickets" className="submit-btn action-btn">
-            Ver meus ingressos
-          </Link>
-        </div>
-      </div>
-    )
-  }
+  if (loading) return <div className="text-center py-20 text-slate-500">Carregando dados da compra...</div>;
 
   return (
-    <div className="page-container">
-      <h2>Pagamento</h2>
-      <p className="state-message">
-        Esta é uma simulação de pagamento. Clique em &quot;Pagar&quot; para
-        confirmar a reserva.
-      </p>
+      <div className="min-h-screen bg-slate-50 py-10 px-6">
+        <div className="max-w-xl mx-auto bg-white rounded-2xl border border-slate-200/60 shadow-xl p-8 space-y-6">
+          <div>
+            <h1 className="text-2xl font-black text-slate-900">Finalizar Compra</h1>
+            <p className="text-xs text-slate-500 font-medium">Revise os detalhes antes de confirmar o pagamento</p>
+          </div>
 
-      {error && <div className="error-message">{error}</div>}
+          {event && (
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200/60 space-y-2">
+                <h3 className="font-extrabold text-slate-900 text-base">{event.title}</h3>
+                <p className="text-xs text-slate-500">📍 {event.location}</p>
+                <p className="text-xs text-slate-500">📅 {event.date}</p>
+                <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                  <span className="text-xs font-bold text-slate-600">Total:</span>
+                  <span className="text-lg font-black text-violet-700">
+                {event.price ? `R$ ${Number(event.price).toFixed(2)}` : 'Grátis'}
+              </span>
+                </div>
+              </div>
+          )}
 
-      <div className="info-block">
-        <p>
-          Evento: <strong>{reservation.eventTitle}</strong>
-        </p>
-        <p>Status: {reservation.status}</p>
-        <p>Total: {formatPrice(reservation.totalAmount)}</p>
-        <p>Expira em: {formatDate(reservation.expiresAt)}</p>
-        <p>Assentos: {reservation.seatIds?.length || 0}</p>
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Forma de Pagamento</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                type="button" 
+                onClick={() => setPaymentMethod('CARD')}
+                className={`p-3 border-2 rounded-xl text-xs font-bold text-center ${paymentMethod === 'CARD' ? 'border-violet-600 bg-violet-50 text-violet-700' : 'border-slate-200 text-slate-600'}`}
+              >
+                💳 Cartão
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setPaymentMethod('PIX')}
+                className={`p-3 border-2 rounded-xl text-xs font-bold text-center ${paymentMethod === 'PIX' ? 'border-violet-600 bg-violet-50 text-violet-700' : 'border-slate-200 text-slate-600'}`}
+              >
+                💠 PIX
+              </button>
+            </div>
+          </div>
+
+          <button
+              onClick={handleConfirmPayment}
+              className="w-full bg-violet-600 hover:bg-violet-700 text-white font-extrabold py-3.5 rounded-xl transition-all shadow-md shadow-violet-200 active:scale-95 text-sm"
+          >
+            Pagar Agora
+          </button>
+        </div>
       </div>
-
-      <div className="btn-row">
-        <button
-          type="button"
-          className="submit-btn action-btn"
-          onClick={handlePay}
-          disabled={paying || reservation.status !== 'PENDING'}
-        >
-          {paying ? 'Processando...' : 'Pagar agora'}
-        </button>
-        <button
-          type="button"
-          className="secondary-btn"
-          onClick={handleCancel}
-          disabled={paying}
-        >
-          Cancelar reserva
-        </button>
-      </div>
-    </div>
-  )
+  );
 }
+
+export default PaymentPage;
