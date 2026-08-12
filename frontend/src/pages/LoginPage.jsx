@@ -20,10 +20,17 @@ export function LoginPage() {
     try {
       const response = await authAPI.login(email, password)
       const { token } = response.data
+
       login(token, email, email.split('@')[0], 'CUSTOMER')
-      navigate('/')
+      navigate('/home')
     } catch (err) {
-      setError(err.response?.data?.message || 'Falha no login')
+      const status = err.response?.status
+
+      if (status === 401 || status === 400) {
+        setError('E-mail ou senha inválidos. Verifique suas credenciais e tente novamente.')
+      } else {
+        setError('Não foi possível entrar no sistema neste momento. Tente novamente mais tarde.')
+      }
     } finally {
       setLoading(false)
     }
