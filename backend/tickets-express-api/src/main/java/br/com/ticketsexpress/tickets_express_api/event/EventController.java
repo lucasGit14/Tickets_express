@@ -3,6 +3,7 @@ package br.com.ticketsexpress.tickets_express_api.event;
 import br.com.ticketsexpress.tickets_express_api.event.dto.CreateEventRequest;
 import br.com.ticketsexpress.tickets_express_api.event.dto.EventResponse;
 import br.com.ticketsexpress.tickets_express_api.event.dto.UpdateEventRequest;
+import br.com.ticketsexpress.tickets_express_api.integration.TmdbService;
 import br.com.ticketsexpress.tickets_express_api.reservation.ReservationResponse;
 import br.com.ticketsexpress.tickets_express_api.reservation.ReservationService;
 import jakarta.validation.Valid;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -19,10 +21,12 @@ public class EventController {
 
     private final EventService eventService;
     private final ReservationService reservationService;
+    private final TmdbService tmdbService;
 
-    public EventController(EventService eventService, ReservationService reservationService) {
+    public EventController(EventService eventService, ReservationService reservationService, TmdbService tmdbService) {
         this.eventService = eventService;
         this.reservationService = reservationService;
+        this.tmdbService = tmdbService;
     }
 
     @PostMapping
@@ -64,5 +68,10 @@ public class EventController {
     @GetMapping("/{id}/reservations")
     public ResponseEntity<List<ReservationResponse>> reservations(@PathVariable UUID id) {
         return ResponseEntity.ok(reservationService.listReservationsForEvent(id));
+    }
+
+    @GetMapping("/catalog/search")
+    public ResponseEntity<List<Map<String, Object>>> searchCatalog(@RequestParam String query) {
+        return ResponseEntity.ok(tmdbService.searchMovies(query));
     }
 }

@@ -93,13 +93,18 @@ npm run dev
 
 Acesse http://localhost:5173
 
-## Usuários de teste
+## Usuários de teste (Seed Data)
 
-| Papel | Email | Senha | Como obter |
-|-------|-------|-------|------------|
-| GATEKEEPER | `gatekeeper@example.com` | `gatekeeper` | Seed Flyway (V2/V3) |
-| ORGANIZER | — | — | Cadastro em `/register` com role ORGANIZER |
-| CUSTOMER | — | — | Cadastro em `/register` com role CUSTOMER |
+Os seguintes usuários são criados automaticamente pelo Flyway (V5) ao iniciar a aplicação:
+
+| Papel | Email | Senha |
+|-------|-------|-------|
+| ORGANIZER | `organizador@example.com` | `organizador` |
+| CUSTOMER 1 | `cliente1@example.com` | `cliente1` |
+| CUSTOMER 2 | `cliente2@example.com` | `cliente2` |
+| GATEKEEPER | `gatekeeper@example.com` | `gatekeeper` |
+
+**Nota:** A senha para todos os usuários de teste é a mesma do email (sem o @example.com).
 
 Não versionamos senhas de produção. Segredos JWT/QR usam defaults apenas para desenvolvimento local (veja `.env.example`).
 
@@ -165,3 +170,7 @@ Tickets_express/
 ├── .env.example
 └── README.md
 ```
+
+## Uso de IA
+
+O uso de inteligência artificial neste projeto limitou-se a algumas linhas de código na parte do Front-End, utilizando a ferramenta Codex.

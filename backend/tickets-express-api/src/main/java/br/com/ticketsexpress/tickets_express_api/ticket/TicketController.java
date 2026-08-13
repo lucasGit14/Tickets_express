@@ -33,7 +33,7 @@ public class TicketController {
     }
 
     @PostMapping("/validate")
-    public ResponseEntity<TicketResponse> validate(@Valid @RequestBody ValidateTicketRequest request) {
+    public ResponseEntity<TicketValidationResponse> validate(@Valid @RequestBody ValidateTicketRequest request) {
         return ResponseEntity.ok(ticketService.validate(request));
     }
 

@@ -7,6 +7,7 @@ export function PaymentPage() {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState('CARD');
+  const [simulateRefused, setSimulateRefused] = useState(false);
 
   useEffect(() => {
     fetch(`http://localhost:8080/api/events/${id}`)
@@ -23,6 +24,12 @@ export function PaymentPage() {
 
   const handleConfirmPayment = async () => {
     const token = localStorage.getItem('token');
+    
+    if (simulateRefused) {
+      alert('Pagamento recusado pela instituição financeira. Tente novamente com outro cartão ou método de pagamento.');
+      return;
+    }
+    
     try {
       const response = await fetch(`http://localhost:8080/api/tickets/purchase/${id}`, {
         method: 'POST',
@@ -89,6 +96,19 @@ export function PaymentPage() {
                 💠 PIX
               </button>
             </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="simulateRefused"
+              checked={simulateRefused}
+              onChange={(e) => setSimulateRefused(e.target.checked)}
+              className="w-4 h-4 rounded border-slate-300 text-violet-600 focus:ring-violet-600"
+            />
+            <label htmlFor="simulateRefused" className="text-xs font-medium text-slate-700">
+              Simular Pagamento Recusado
+            </label>
           </div>
 
           <button

@@ -94,27 +94,79 @@ public class TicketService {
     }
 
     @Transactional
-    public TicketResponse validate(ValidateTicketRequest request) {
+    public TicketValidationResponse validate(ValidateTicketRequest request) {
         ApplicationUser gatekeeper = currentUserService.requireCurrentUser();
         if (gatekeeper.getRole() != UserRole.GATEKEEPER) {
             throw new ForbiddenException("Only gatekeepers can validate tickets");
         }
 
         Ticket ticket = ticketRepository.findByCodeRaw(request.code().trim())
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found"));
+                .orElse(null);
+
+        if (ticket == null) {
+            return new TicketValidationResponse(
+                    TicketValidationStatus.INVALID,
+                    "Ingresso não encontrado",
+                    null,
+                    request.code().trim(),
+                    null,
+                    null,
+                    null,
+                    null
+            );
+        }
 
         ReservationStatus reservationStatus = ticket.getReservation().getStatus();
         if (reservationStatus == ReservationStatus.CANCELLED || reservationStatus == ReservationStatus.EXPIRED) {
-            throw new IllegalArgumentException("Ticket reservation is not valid");
+            return new TicketValidationResponse(
+                    TicketValidationStatus.INVALID,
+                    "Reserva do ingresso não é válida",
+                    ticket.getId(),
+                    ticket.getCodeRaw(),
+                    ticket.getReservation().getEvent().getId(),
+                    ticket.getReservation().getEvent().getTitle(),
+                    ticket.getOwner().getName(),
+                    null
+            );
         }
+
         if (ticket.getStatus() == TicketStatus.CANCELLED) {
-            throw new IllegalArgumentException("Ticket is cancelled");
+            return new TicketValidationResponse(
+                    TicketValidationStatus.INVALID,
+                    "Ingresso cancelado",
+                    ticket.getId(),
+                    ticket.getCodeRaw(),
+                    ticket.getReservation().getEvent().getId(),
+                    ticket.getReservation().getEvent().getTitle(),
+                    ticket.getOwner().getName(),
+                    null
+            );
         }
+
         if (ticket.getStatus() == TicketStatus.USED) {
-            throw new IllegalArgumentException("Ticket already used");
+            return new TicketValidationResponse(
+                    TicketValidationStatus.ALREADY_USED,
+                    "Ingresso já utilizado",
+                    ticket.getId(),
+                    ticket.getCodeRaw(),
+                    ticket.getReservation().getEvent().getId(),
+                    ticket.getReservation().getEvent().getTitle(),
+                    ticket.getOwner().getName(),
+                    ticket.getValidatedAt()
+            );
         }
+
         if (ticket.getStatus() != TicketStatus.VALID) {
-            throw new IllegalArgumentException("Ticket is not valid");
+            return new TicketValidationResponse(
+                    TicketValidationStatus.INVALID,
+                    "Ingresso não está em estado válido",
+                    ticket.getId(),
+                    ticket.getCodeRaw(),
+                    ticket.getReservation().getEvent().getId(),
+                    ticket.getReservation().getEvent().getTitle(),
+                    ticket.getOwner().getName(),
+                    null
+            );
         }
 
         Instant now = Instant.now(clockProvider.clock());
@@ -133,7 +185,18 @@ public class TicketService {
                 ticket.getCreatedAt()
         );
 
-        return toResponse(ticketRepository.save(used));
+        ticketRepository.save(used);
+
+        return new TicketValidationResponse(
+                TicketValidationStatus.VALID,
+                "Ingresso validado com sucesso",
+                ticket.getId(),
+                ticket.getCodeRaw(),
+                ticket.getReservation().getEvent().getId(),
+                ticket.getReservation().getEvent().getTitle(),
+                ticket.getOwner().getName(),
+                now
+        );
     }
 
     @Transactional
@@ -209,7 +272,7 @@ public class TicketService {
         }
 
         Seat availableSeat = seatRepository.findFirstAvailableByEventId(eventId, List.of(ReservationStatus.PENDING, ReservationStatus.PAID))
-                .orElseThrow(() -> new IllegalArgumentException("No tickets available for this event"));
+                .orElseThrow(() -> new IllegalArgumentException("Não há ingressos disponíveis para este evento"));
 
         ReserveSeatsRequest reserveRequest = new ReserveSeatsRequest(eventId, List.of(availableSeat.getId()));
         ReservationResponse reservationResponse = reservationService.reserveSeats(reserveRequest);

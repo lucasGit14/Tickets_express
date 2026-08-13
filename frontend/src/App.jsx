@@ -82,6 +82,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/portaria"
+            element={
+              <ProtectedRoute roles={['GATEKEEPER']}>
+                <ValidateTicketPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="*" element={<Navigate to="/home" replace />} />
